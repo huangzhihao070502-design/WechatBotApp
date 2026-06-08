@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">微信AI助手</string>
+    <string name="refresh">刷新</string>
+    <string name="open_browser">在浏览器中打开</string>
+    <string name="status_ready">准备就绪</string>
+    <string name="status_loading">加载中…</string>
+    <string name="status_error">连接错误</string>
+</resources>
