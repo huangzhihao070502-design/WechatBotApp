@@ -174,7 +174,7 @@ class BotService : Service() {
 
                 // Capture stdout and stderr
                 val stdoutJob = launch(Dispatchers.IO) {
-                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    val reader = BufferedReader(InputStreamReader(process.getInputStream()))
                     reader.useLines { lines ->
                         lines.forEach { line ->
                             processOutputLine(line)
@@ -183,7 +183,7 @@ class BotService : Service() {
                 }
 
                 val stderrJob = launch(Dispatchers.IO) {
-                    val reader = BufferedReader(InputStreamReader(process.errorStream))
+                    val reader = BufferedReader(InputStreamReader(process.getErrorStream()))
                     reader.useLines { lines ->
                         lines.forEach { line ->
                             // Log errors or handle them
