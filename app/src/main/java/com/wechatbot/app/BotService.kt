@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -153,7 +154,7 @@ class BotService : Service() {
         }
     }
 
-    private suspend fun runBotLoop() {
+    private suspend fun runBotLoop() = withContext(Dispatchers.IO) {
         while (isRunning.get() && restartCount <= maxRestarts) {
             try {
                 val scriptFile = File(filesDir, "scripts/$SCRIPT_NAME")
@@ -165,45 +166,29 @@ class BotService : Service() {
 
                 val processBuilder = ProcessBuilder(PYTHON_PATH, scriptFile.absolutePath)
                 processBuilder.directory(scriptFile.parentFile)
-                processBuilder.redirectErrorStream(false)
+                processBuilder.redirectErrorStream(true)
 
                 val process: java.lang.Process = processBuilder.start()
                 processRef.set(process)
 
                 broadcastStatus(STATUS_RUNNING, message = "Bot process started (Restart #$restartCount)")
 
-                // Capture stdout and stderr
-                val stdoutJob = launch(Dispatchers.IO) {
-                    val reader = BufferedReader(InputStreamReader(process.getInputStream()))
-                    reader.useLines { lines ->
-                        lines.forEach { line ->
-                            processOutputLine(line)
-                        }
-                    }
-                }
-
-                val stderrJob = launch(Dispatchers.IO) {
-                    val reader = BufferedReader(InputStreamReader(process.getErrorStream()))
-                    reader.useLines { lines ->
-                        lines.forEach { line ->
-                            // Log errors or handle them
-                            android.util.Log.e(TAG, "Python Error: $line")
-                        }
+                // Read combined stdout+stderr
+                val reader = BufferedReader(InputStreamReader(process.getInputStream()))
+                reader.useLines { lines ->
+                    lines.forEach { line ->
+                        processOutputLine(line)
+                        android.util.Log.d(TAG, "Python: $line")
                     }
                 }
 
                 val exitCode = process.waitFor()
-                stdoutJob.join()
-                stderrJob.join()
-
                 processRef.set(null)
 
                 if (!isRunning.get()) {
-                    // Normal stop
                     break
                 }
 
-                // Process died unexpectedly
                 restartCount++
                 if (restartCount > maxRestarts) {
                     broadcastStatus(STATUS_ERROR, message = "Process crashed too many times")
@@ -211,7 +196,6 @@ class BotService : Service() {
                     break
                 }
 
-                // Wait a bit before restarting
                 Thread.sleep(2000)
 
             } catch (e: Exception) {
@@ -222,7 +206,6 @@ class BotService : Service() {
             }
         }
 
-        // Cleanup if loop exits
         if (isRunning.get()) {
             stopSelf()
         }
