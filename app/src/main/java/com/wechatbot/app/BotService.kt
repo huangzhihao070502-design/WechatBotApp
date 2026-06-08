@@ -46,7 +46,7 @@ class BotService : Service() {
         // Static state
         private val isRunning = AtomicBoolean(false)
         private val detectedPort = AtomicInteger(DEFAULT_PORT)
-        private val processRef = AtomicReference<Process?>()
+        private val processRef = AtomicReference<java.lang.Process?>()
 
         @JvmStatic
         fun isRunning(): Boolean = isRunning.get()
@@ -167,7 +167,7 @@ class BotService : Service() {
                 processBuilder.directory(scriptFile.parentFile)
                 processBuilder.redirectErrorStream(false)
 
-                val process = processBuilder.start()
+                val process: java.lang.Process = processBuilder.start()
                 processRef.set(process)
 
                 broadcastStatus(STATUS_RUNNING, message = "Bot process started (Restart #$restartCount)")
